@@ -1,48 +1,55 @@
-const apiKey = '416e0f0dd8c8e9042517b54f30bf565c';
-let latitude;
-let longitude;
-const notification = document.getElementsByClassName('notification')[0];
-let weather;
+const apiKey = "416e0f0dd8c8e9042517b54f30bf565c";
+const notification = document.getElementsByClassName("notification")[0];
 
-getLocation();
-function getLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(onSuccess, onError);
-    }
+(function getLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(onSuccess, onError);
+  }
+})();
+
+function onError(error) {
+  console.error("No no no ", error);
+  displayError(error);
 }
 
-function kelvinToCelsius(temp) {
-    return temp - 273.15;
+function displayError(error) {
+  const p = document.createElement("p");
+  p.innerHTML = error.message;
+  notification.style.display = "block";
+  notification.appendChild(p);
 }
 
 function onSuccess(position) {
-    console.log(position);
-    latitude = position.coords.latitude;
-    longitude = position.coords.longitude;
-
-    const weatherCall = fetch('https://api.openweathermap.org/data/2.5/weather?'
-                            + 'lat=' + latitude
-                            + '&lon=' + longitude
-                            + '&appid=' + apiKey);
-
-    weatherCall.then(response => response.json())
-            .then(weatherInfo => {
-                console.log(weatherInfo)
-                console.log(weatherInfo.weather[0].icon);
-                console.log(kelvinToCelsius(weatherInfo.main.temp).toFixed(1));
-                console.log(weatherInfo.weather[0].main);
-                console.log(weatherInfo.name);
-            });
+  const { latitude, longitude } = position.coords;
+  get(latitude, longitude, displayWeather, displayError);
 }
 
-function onError(error) {
-    console.error('No no no ', error);
-    // 1. take message and put it in a p
-    const p = document.createElement('p');
-    p.innerHTML = error.message;
-    // 2. display: block (notification div)
-    notification.style.display = 'block';
-    // 3. append p inside notification
-    notification.appendChild(p);
+async function get(latitude, longitude, onSuccess, onError) {
+  return await fetch(
+    `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}`
+  )
+    .then((response) => response.json())
+    .then(onSuccess)
+    .catch(onError);
 }
 
+function displayWeather(weatherInfo) {
+  const temperatureValue = selectParagraphIn(".temperature-value");
+  const temperatureDescription = selectParagraphIn(".temperature-description");
+  const appTitle = selectParagraphIn(".app-title");
+  const location = selectParagraphIn(".location");
+
+  temperatureValue.innerText =
+    kelvinToCelsius(weatherInfo.main.temp).toFixed(1) +
+    temperatureValue.innerText.slice(1);
+  temperatureDescription.innerText = weatherInfo.weather[0].main;
+  appTitle.innerText = location.innerText = weatherInfo.name;
+}
+
+function selectParagraphIn(query) {
+  return document.querySelector(query).querySelector("p");
+}
+
+function kelvinToCelsius(temp) {
+  return temp - 273.15;
+}
